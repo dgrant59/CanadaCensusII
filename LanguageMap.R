@@ -1,6 +1,7 @@
 library(tidyverse)
+library(sf)
 library(readxl)
-library(rgdal)
+library(data.table)
 library(ggspatial)
 library(magrittr)
 library(fuzzyjoin)
@@ -10,8 +11,23 @@ library(svglite)
 # setwd("PATHHERE")
 
 
-popdata <- read.csv("98-401-X2021005_English_CSV_data.csv")
-popdata %<>% filter(GEO_LEVEL=="Census subdivision") %>% filter(CHARACTERISTIC_ID%in%c(1:5))
+popdata <- fread("98-401-X2021005_English_CSV_data.csv",encoding = "Latin-1")
+popdata <- popdata[,c(1:5,8:12)]
+popdata %<>% filter(GEO_LEVEL=="Census division") 
+
+popdata %<>% filter(CHARACTERISTIC_ID%in%c(726:1045))
+popdatanie <- filter(popdata, grepl("n\\.",CHARACTERISTIC_NAME))
+popdata <- filter(popdata, !grepl("languages",CHARACTERISTIC_NAME))
+popdata <- filter(popdata, !grepl("n\\.",CHARACTERISTIC_NAME))
+popdata <- rbind(popdata, popdatanie)
+
+popdata <- popdata %>% group_by(ALT_GEO_CODE) %>% filter(sum(C1_COUNT_TOTAL)!=0) %>% filter(as.integer(ordered(-C1_COUNT_TOTAL))==1)
+
+#this is wrong
+popdata2 <- popdata %>% group_by(ALT_GEO_CODE) %>% filter(length(ALT_GEO_CODE)==1)
+popdata234234234 <- popdata%>%group_by(ALT_GEO_CODE) %>% filter(length(ALT_GEO_CODE)>1) %>%distinct(.,ALT_GEO_CODE,.keep_all = T)
+
+popdata2$CHARACTERISTIC_NAME <- trimws(popdata2$CHARACTERISTIC_NAME,"both")
 
 data_qual <- popdata[,c(3,6)] %>% group_by(ALT_GEO_CODE) %>% summarise(Data_qual = toString(DATA_QUALITY_FLAG))
 
@@ -21,44 +37,38 @@ popdata <- left_join(popdata,data_qual,by=c("ALT_GEO_CODE"="ALT_GEO_CODE"))
 popdata %<>% mutate(ALT_GEO_CODE=factor(ALT_GEO_CODE))
 
 ###### MAP DATA
-canada <- readOGR(dsn = "./ShapeFiles/Alt3/lcsd000b21a_e.shp", 
+canada <- read_sf(dsn = "./ShapeFiles/CensusDivisionSimplified.shp", 
                    stringsAsFactors = T)
 
 #Join map data to case data for easy ggplotting
-canada@data <- left_join(canada@data,popdata, by=c("DGUID"="DGUID")) 
+canada <- left_join(canada,popdata2, by=c("DGUID"="DGUID")) 
 
 
 # dates <- colnames(ontario@data)[10:(length(colnames(ontario@data))-1)]
+#places <- c(10:13,24,35,46:48,59:62)
 
-places <- c(10:13,24,35,46:48,59:62)
-pnames <- c("Newfoundland and Labrador\n(Terre-Neuve-et-Labrador)",
-           "Prince Edward Island\n(Île-du-Prince-Édouard)",
-           "Nova Scotia\n(Nouvelle-Écosse)",
-           "New Brunswick\n(Nouveau-Brunswick)",
-           "Quebec\n(Québec",
-           "Ontario",
-           "Manitoba",
-           "Saskatchewan",
-           "Alberta",
-           "British Columbia\n(Colombie-Britannique)",
-           "Yukon",
-           "Northwest Territories\n(Territoires du Nord-Ouest)",
-           "Nunavut")
+# c("Newfoundland and Labrador\n(Terre-Neuve-et-Labrador)",
+#   "Prince Edward Island\n(Île-du-Prince-Édouard)",
+#   "Nova Scotia\n(Nouvelle-Écosse)",
+#   "New Brunswick\n(Nouveau-Brunswick)",
+#   "Quebec\n(Québec",
+#   "Ontario",
+#   "Manitoba",
+#   "Saskatchewan",
+#   "Alberta",
+#   "British Columbia\n(Colombie-Britannique)",
+#   "Yukon",
+#   "Northwest Territories\n(Territoires du Nord-Ouest)",
+#   "Nunavut")
+places <- c(35)
+pnames <- c("Ontario")
 
 for(i in 1:length(places)){
-  temp <- canada[gsub("(^\\d{2}).*", "\\1", as.integer(as.character(canada@data$CSDUID)))==places[i],]
+  temp <- canada[gsub("(^\\d{2}).*", "\\1", as.integer(as.character(canada$PRUID)))==places[i],]
   ggplot()+
     annotation_spatial(temp,lwd=0.05)+
-    layer_spatial(temp,aes(fill=`Population percentage change, 2016 to 2021`,color="Population not \nrecorded in 2016"),lwd=0.05)+
-    scale_colour_manual(values="black") +  
-    scale_fill_stepsn(breaks=c(-2.6,0,2.6,5.2,7.8,10.4,13),na.value="grey",
-                      colours =brewer.pal(9,"RdYlGn"),
-                         labels = c(-2.6,0,2.6,"5.2 (Canada)",7.8,10.4,13),
-                         limits=c(-5.2,15.6),
-                         oob=scales::squish,
-                         guide = guide_colourbar(ticks.colour="black",
-                                                 barheight = 20,
-                                                 frame.colour = "black"))+
+    layer_spatial(temp,aes(fill=CHARACTERISTIC_NAME),color="black",lwd=0.05)+
+    scale_fill_manual(values=c(rainbow(16)))+
     labs(fill="% change in Pop, \n 2016-2021")+
     theme(legend.title.align=0.5,
           axis.line=element_blank(),  #bunch of options to remove "graph" visuals
@@ -78,8 +88,9 @@ for(i in 1:length(places)){
     ggtitle(paste("Growth of\n",pnames[i],"\n2016-2021"))+
     guides(colour=guide_legend("", override.aes=list(colour="black")))
   
-  ggsave(paste0(sub("\\n.*","",pnames[i]),".pdf"),path="./Maps/")
+  
 }
+# ggsave(paste0(sub("\\n.*","",pnames[i]),".pdf"),path="./Maps/")
 
 # 10 	Newfoundland and Labrador/Terre-Neuve-et-Labrador
 # 11 	Prince Edward Island/Île-du-Prince-Édouard
