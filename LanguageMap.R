@@ -20,6 +20,7 @@ popdatanie <- filter(popdata, grepl("n\\.",CHARACTERISTIC_NAME))
 popdata <- filter(popdata, !grepl("languages",CHARACTERISTIC_NAME))
 popdata <- filter(popdata, !grepl("n\\.",CHARACTERISTIC_NAME))
 popdata <- rbind(popdata, popdatanie)
+popdata$CHARACTERISTIC_NAME <- trimws(popdata$CHARACTERISTIC_NAME,"both")
 
 popdata <- popdata %>% group_by(ALT_GEO_CODE) %>% filter(sum(C1_COUNT_TOTAL)!=0) %>% filter(as.integer(ordered(-C1_COUNT_TOTAL))==1)
 
@@ -60,7 +61,7 @@ canada <- left_join(canada,popdata2, by=c("DGUID"="DGUID"))
 #   "Yukon",
 #   "Northwest Territories\n(Territoires du Nord-Ouest)",
 #   "Nunavut")
-places <- c(35)
+places <- c(46)
 pnames <- c("Ontario")
 
 for(i in 1:length(places)){
@@ -68,7 +69,7 @@ for(i in 1:length(places)){
   ggplot()+
     annotation_spatial(temp,lwd=0.05)+
     layer_spatial(temp,aes(fill=CHARACTERISTIC_NAME),color="black",lwd=0.05)+
-    scale_fill_manual(values=c(rainbow(16)))+
+    scale_fill_manual(values=languages[names(languages)%in%unique(temp$CHARACTERISTIC_NAME)])+
     labs(fill="% change in Pop, \n 2016-2021")+
     theme(legend.title.align=0.5,
           axis.line=element_blank(),  #bunch of options to remove "graph" visuals
@@ -90,6 +91,44 @@ for(i in 1:length(places)){
   
   
 }
+
+languages <- c(`Arabic`="darkslateblue",
+               `Punjabi (Panjabi)`="darkmagenta",
+               `Urdu`="darkorchid4",
+               `Gujarati`="darkorchid",
+               `Tamil`="darkorchid2",
+               
+               `Innu (Montagnais)`="darkgreen",
+               `Inuktitut`="green",
+               `Mi'kmaq`="darkolivegreen1",
+               `Oji-Cree`="darkseagreen3",
+               `Atikamekw`="chartreuse",
+               `Dakelh (Carrier)`="darkolivegreen",
+               `Inuinnaqtun (Inuvialuktun)`="chartreuse",
+               `Tlicho (Dogrib)`="green",
+               `Cree, n.o.s.`="darkgreen",
+               `Ojibway, n.o.s.`="chartreuse",
+               `Dene, n.o.s.`="darkseagreen",
+               `Slavey, n.o.s.`="darkgreen",
+               `Anicinabemowin (Algonquin)`="chartreuse4",
+               
+               `Tagalog (Pilipino, Filipino)`="coral",
+               `Mandarin`="pink",
+               `Korean`="deeppink",
+               `Yue (Cantonese)`="deeppink3",
+               `Vietnamese`="darksalmon",
+               
+               `American Sign Language`="aliceblue",
+               `German`="blue",
+               `Spanish`="deepskyblue",
+               `Russian`="blue4",
+               `Pennsylvania German`="darkcyan",
+               `Portuguese`="deepskyblue4",
+               `Polish`="cornflowerblue",
+               `Italian`="cyan",
+               `Germanic languages, n.i.e.`="cyan3",
+               
+               `Yiddish`="red")
 # ggsave(paste0(sub("\\n.*","",pnames[i]),".pdf"),path="./Maps/")
 
 # 10 	Newfoundland and Labrador/Terre-Neuve-et-Labrador
