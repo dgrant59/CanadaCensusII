@@ -8,13 +8,18 @@ library(fuzzyjoin)
 library(tmap)
 library(RColorBrewer)
 library(svglite)
+library(leaflet)
+library(plotly)
 # setwd("PATHHERE")
 
 
 popdata <- fread("98-401-X2021005_English_CSV_data.csv",encoding = "Latin-1")
 
+
+
+
 popdata <- popdata[,c(1:5,8:12,18)]
-popdata %<>% filter(GEO_LEVEL=="Dissemination area") 
+popdata %<>% filter(GEO_LEVEL=="Census division") 
 
 popdata %<>% filter(CHARACTERISTIC_ID%in%c(725:1045))#725 for french
 popdatanie <- filter(popdata, grepl("n\\.",CHARACTERISTIC_NAME))
@@ -24,6 +29,8 @@ popdata <- rbind(popdata, popdatanie)
 popdata$CHARACTERISTIC_NAME <- trimws(popdata$CHARACTERISTIC_NAME,"both")
 
 popdata <- popdata %>% group_by(ALT_GEO_CODE) %>% filter(sum(C1_COUNT_TOTAL)!=0) %>% filter(as.integer(ordered(-C1_COUNT_TOTAL))==1)
+#2021A00031008 2021A00031311 2021A00035957 are ties
+
 #popdata <- popdata %>% group_by(ALT_GEO_CODE) %>% filter(CHARACTERISTIC_NAME=="Mandarin")
 #this is wrong
 popdata2 <- popdata %>% group_by(ALT_GEO_CODE) %>% filter(length(ALT_GEO_CODE)==1)
@@ -161,3 +168,51 @@ languages <- c(`Arabic`="lightcoral",
 
 #tm_shape(temp)+tm_fill(col="Population percentage change, 2016 to 2021")+tm_borders()
 
+popdata2$randx <- runif(nrow(popdata2))
+popdata2$randy <- runif(nrow(popdata2))
+
+canada <- read_sf(dsn = "./ShapeFiles/CensusDivisionSimplified.shp", 
+                  stringsAsFactors = T)
+
+canada <- st_read("./ShapeFiles/CensusDivisionSimplified.shp") %>% 
+  st_transform(4326) %>%
+  highlight_key()
+
+# temp <- canada[gsub("(^\\d{2}).*", "\\1", as.integer(as.character(canada$PRUID)))==11,]
+# ggplot()+
+#   annotation_spatial(temp,lwd=0.05)+
+#   layer_spatial(temp,aes(),color="black",lwd=0.03)+
+#   labs(fill="% Speaking Language at Home")
+#   
+canada2 <- right_join(canada,popdata2, by=c("DGUID"="DGUID"))  
+canada2 <- st_transform(canada2, 4326) 
+
+canada2 <- highlight_key(canada2)
+ 
+#temp <- canada2[gsub("(^\\d{2}).*", "\\1", as.integer(as.character(canada2$PRUID)))==11,]
+
+map <- leaflet(canada) %>%
+  addTiles() %>%
+  addPolygons(
+    opacity = 1,
+    color = 'white',
+    weight = .25,
+    fillOpacity = .5,
+    fillColor = 'blue',
+    smoothFactor = 0
+  )
+p <- plot_ly(canada) %>% 
+  add_markers(x = ~LANDAREA, y = ~LANDAREA) %>%
+  layout(dragmode="lasso")%>%
+  highlight("plotly_selected")
+
+# p2 <- plot_ly(canada2) %>% 
+#   add_markers(x = ~randy, y = ~randx) %>%
+#   layout(dragmode = "lasso") %>%
+#   highlight("plotly_selected")
+
+crosstalk::bscols(map,p)
+
+
+
+    
