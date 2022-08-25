@@ -5,7 +5,6 @@ library(data.table)
 library(ggspatial)
 library(magrittr)
 library(fuzzyjoin)
-library(tmap)
 library(RColorBrewer)
 library(svglite)
 library(leaflet)
@@ -175,8 +174,7 @@ canada <- read_sf(dsn = "./ShapeFiles/CensusDivisionSimplified.shp",
                   stringsAsFactors = T)
 
 canada <- st_read("./ShapeFiles/CensusDivisionSimplified.shp") %>% 
-  st_transform(4326) %>%
-  highlight_key()
+  st_transform(4326)
 
 # temp <- canada[gsub("(^\\d{2}).*", "\\1", as.integer(as.character(canada$PRUID)))==11,]
 # ggplot()+
@@ -187,32 +185,38 @@ canada <- st_read("./ShapeFiles/CensusDivisionSimplified.shp") %>%
 canada2 <- right_join(canada,popdata2, by=c("DGUID"="DGUID"))  
 canada2 <- st_transform(canada2, 4326) 
 
-canada2 <- highlight_key(canada2)
- 
-#temp <- canada2[gsub("(^\\d{2}).*", "\\1", as.integer(as.character(canada2$PRUID)))==11,]
-
-map <- leaflet(canada) %>%
+canada2 %>% highlight_key(~CHARACTERISTIC_NAME) %>%
+  leaflet() %>%
   addTiles() %>%
   addPolygons(
     opacity = 1,
     color = 'white',
     weight = .25,
     fillOpacity = .5,
-    fillColor = 'blue',
+    fillColor = canada2$CHARACTERISTIC_NAME,
     smoothFactor = 0
   )
-p <- plot_ly(canada) %>% 
-  add_markers(x = ~LANDAREA, y = ~LANDAREA) %>%
-  layout(dragmode="lasso")%>%
-  highlight("plotly_selected")
+ 
+
+canada2 %>% highlight_key(~CHARACTERISTIC_NAME) %>%
+  ggplot()+
+  annotation_spatial(canada2,lwd=0.05)+
+  layer_spatial(canada2,aes(fill=CHARACTERISTIC_NAME),color="black",lwd=0.03)+
+  scale_fill_manual(values=rainbow(51))
+#temp <- canada2[gsub("(^\\d{2}).*", "\\1", as.integer(as.character(canada2$PRUID)))==11,]
+
+map <- plot_ly(canada2,split=~CHARACTERISTIC_NAME)
+
+p <- ggplot(canada2) + geom_bar(aes(x=CHARACTERISTIC_NAME,fill=CHARACTERISTIC_NAME))
 
 # p2 <- plot_ly(canada2) %>% 
 #   add_markers(x = ~randy, y = ~randx) %>%
 #   layout(dragmode = "lasso") %>%
 #   highlight("plotly_selected")
 
-crosstalk::bscols(map,p)
+crosstalk::bscols(map,ggplotly(p))
 
 
 
-    
+
+
