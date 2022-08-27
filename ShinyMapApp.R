@@ -16,6 +16,7 @@ library(tmap)
 library(svglite)
 library(plotly)
 library(crosstalk)
+library(shinythemes)
 popdata <- fread("98-401-X2021005_English_CSV_data.csv",encoding = "Latin-1")
 
 
@@ -46,7 +47,7 @@ popdata <- rbind(popdata, popdataTIES)
 
 
 
-lang_order <- popdata %>% group_by(Language) %>% summarise(n=n()) %>% arrange(desc(n)) %>% select(Language)
+lang_order <- popdata %>% group_by(Language) %>% summarise(n=n()) %>% arrange(n) %>% select(Language)
 
 
 
@@ -64,16 +65,58 @@ canada <- right_join(canada,popdata, by=c("DGUID"="DGUID"),keep=F)
 ##### LEAFLET MAP/SHINY APP PREREQS
 ## THE SHINY APP #####
 
-ui <- fluidPage(
-  fillPage(
-    tags$style(type = "text/css", "#map {height: calc(100vh - 80px) !important;}"),
-    column(4,
-           plotlyOutput(outputId = "scatter2", width = "100%",height = "100%")),
-    column(8,
-           plotlyOutput(outputId = "map", width = "100%",height = "100%"))
+##3e3f3a
+ui <- navbarPage(
+  "2021 Census Language Data",
+  theme = shinytheme("sandstone"),
+  
+  tabPanel(
+    "Canada (Provincial)",
+     
+  ),
+  tabPanel(
+    "Canada (Census Divisions)",
+    tags$style(type='text/css', ".tab-content, plot-container plotly {background-color: #f8f5f0;}"),
+    tags$style(type='text/css', ".col-sm-8 {padding-top: 50px;
+  padding-bottom: 50px;padding-right:30px;}"),
+    sidebarLayout(
+      sidebarPanel(
+        width=4,
+        fluidRow(
+          p("Here is the blah blah", a(href = 'https://stackoverflow.com/', 'favorite link ever'),"a new paragraph. 
+            more text Supply more text Supplymore text Supplymore text Supplymore text Supplymore text Supply"),
+          h3("Top Unofficial Language Spoken at Home",style="text-align: center"),
+          tags$style(type = "text/css", "#langbar {height: calc(80vh - 120px) !important;}"),
+          plotlyOutput(outputId = "langbar", width = "100%",height = "100%")
+        )
+      ),
+      mainPanel(
+        width = 8,
+        align = "center",
+        tags$style(type = "text/css", "#map {height: calc(100vh - 220px) !important;}"),
+        plotlyOutput(outputId = "map", width = "100%",height = "100%")
+      )
+      
+    )        
+  ),
+  navbarMenu(
+    "Cities",
+    tabPanel(
+      "Toronto (Dissemination Areas)",
+             
+    ),
+    tabPanel(
+      "Waterloo (Dissemination Areas)",
+             
+    ),
+    tabPanel(
+      "London (Dissemination Areas)",
+             
+    )
   )
-
 )
+
+#get ggplot fill page correctly
 server <- function(input,output,session){
 shared_lang <- highlight_key(canada)
 
@@ -108,18 +151,21 @@ output$map <- renderPlotly({
                     plot.background=element_blank()),tooltip = c("text"))
 })
 
-output$scatter2 <- renderPlotly({
+output$langbar <- renderPlotly({
   ggplotly(
-    ggplot(canada,aes(x=Language,fill=Language))+
-      scale_fill_manual(values=rainbow(length(unique(canada$Language))))+
-      geom_bar()+
-      scale_x_discrete(limits = lang_order$Language)+
-      ggtitle("Regions where Language is Most Spoken Non-English Language")+
+    ggplot(canada,aes(y=Language,fill=Language))+
+      scale_fill_manual(values=c(rainbow(33)[1:17],"grey",rainbow(33)[18:28],"black",rainbow(33)[29:33]))+
+      geom_bar(aes(text=Language))+
+      geom_text(aes(label = Language), stat = "count", hjust="center", nudge_x =strwidth(sort(unique(canada$Language)),font=3,units="in")/2*12, colour = "black",size=3)+
+      scale_y_discrete(limits = lang_order$Language)+
+      labs(x = NULL, y = NULL)+
+      scale_x_continuous(limits=c(0,max(table(canada$Language))+11),expand = c(0,0)) +
       theme(legend.title.align=0.5,
             axis.line=element_blank(),  #bunch of options to remove "graph" visuals
-            axis.text.x = element_text(angle = -45, hjust=-1,size=11),
-            axis.text.y=element_blank(),
+            axis.text.x= element_blank(),
+            axis.text.y= element_blank(),
             axis.ticks=element_blank(),
+            axis.ticks.length = unit(0, "pt"),
             axis.title.x=element_blank(),
             axis.title.y=element_blank(),
             panel.background=element_blank(),
@@ -127,14 +173,13 @@ output$scatter2 <- renderPlotly({
             panel.grid.major=element_blank(),
             panel.grid.minor=element_blank(),
             plot.background=element_blank(),
-            plot.title = element_text(hjust=0.5,size=12),
+            plot.title = element_text(size=12),
             legend.position='none',
-            legend.title=element_blank()),tooltip = c("x","y"))
+            plot.margin=unit(c(0,0,0,0), "mm"),
+            legend.title=element_blank()),tooltip = c("text","x")) %>% layout(margin = list(l = 0, r = 0, b = 0, t = 30))
 })
 }
 
 shinyApp(ui = ui, server = server)
 
-
-#
 
