@@ -25,12 +25,13 @@ colnames_popdata <-  colnames(fread("98-401-X2021006_English_CSV_data_Ontario.cs
 popdata <- fread("98-401-X2021006_English_CSV_data_Ontario.csv",
                  encoding = "Latin-1",
                  skip=7593826,
-                 nrows=5192928)
+                 nrows=5194315)
 colnames(popdata) <- colnames_popdata
 
 #Take only a subset of columns, year, location data, counts, %s
-head(popdata)
-popdata %<>% popdata[,c(1:5,8:12,18)]
+popdata %<>% select(DGUID,ALT_GEO_CODE,GEO_LEVEL,DATA_QUALITY_FLAG,
+                    CHARACTERISTIC_ID,CHARACTERISTIC_NAME,C1_COUNT_TOTAL,
+                    C10_RATE_TOTAL)
 
 #Since data is hierarchical, only take DA-level data
 #(Can switch this for "Census division" or "Census subdivision" if you want
@@ -41,7 +42,7 @@ popdata %<>% filter(GEO_LEVEL=="Dissemination area")
 # with "Most common language spoken at home", i.e. CHARACTERISTIC_ID 725-1045
 # to include English, change to 724, to exclude both Eng and French, change to 726
 
-popdata %<>% filter(CHARACTERISTIC_ID%in%c(725:1045))
+popdata %<>% filter(CHARACTERISTIC_ID%in%c(724:1045))
 
 #Language data here is also hierarchical, i.e. 
 # Non-Indigenous languages
@@ -52,10 +53,11 @@ popdata %<>% filter(CHARACTERISTIC_ID%in%c(725:1045))
 
 # I am only interested in the individual languages.
 # I discovered that individual languages never contain the word "languages"
-# BUT I was still interested in categories of the form "German languages, n.X.X"
-# filter all "not otherwise indicated" languages out, remove all 
-# characteristics with the word "languages", remove all other "n.X.X" languages
-# then re add the "not otherwise indicated" languages.
+# BUT I was still interested in categories of the form "German languages, n.X.X".
+# 1) filter all "not otherwise indicated" language data to a new tibble
+# 2) remove all characteristics with the word "languages", 
+# 3) remove all other "n.X.X" languages
+# 4) re add the "not otherwise indicated" languages from 1)
 
 popdatanie <- filter(popdata, grepl("n\\.",CHARACTERISTIC_NAME))
 popdata <- filter(popdata, !grepl("languages",CHARACTERISTIC_NAME))
@@ -123,11 +125,11 @@ for(i in 1:length(languages)){
       ggtitle(paste0("% Speaking\n",languages[i]," \n Most Often at Home \n (2021)"))
     
     #Save to .svg
-    # ggsave(paste0(sub("\\,.*", "", languages[i]),".svg"),path="./TorontoMaps/",
-    #        width=3500,
-    #        height=3000,
-    #        dpi=300,
-    #        units="px")
+    ggsave(paste0(sub("\\,.*", "", languages[i]),".svg"),path="./TorontoMaps/",
+           width=3500,
+           height=3000,
+           dpi=300,
+           units="px")
   }
 }
 
