@@ -1,26 +1,21 @@
 library(tidyverse)
 library(readxl)
 library(magrittr)
-library(RColorBrewer)
 library(sf)
 library(shiny)
 library(shinyjs)
-library(leaflet)
-library(leafpop)
 library(bslib)
-library(scatterD3)
 library(data.table)
 library(ggspatial)
 library(magrittr)
-library(tmap)
-library(svglite)
 library(plotly)
 library(crosstalk)
 library(shinythemes)
 library(shinycssloaders)
-library(listviewer)
-library(jsonlite)
+# library(listviewer)
+# library(jsonlite)
 library(viridis)
+library(colorspace)
 
 
 popdata <- fread("98-401-X2021005_English_CSV_data.csv",encoding = "Latin-1")
@@ -168,7 +163,7 @@ popdata_CITY %<>% filter(GEO_LEVEL=="Dissemination area")
 # with "Most common language spoken at home", i.e. CHARACTERISTIC_ID 725-1045
 # to include English, change to 724, to exclude both Eng and French, change to 726
 
-popdata_CITY %<>% filter(CHARACTERISTIC_ID%in%c(725:1045))
+popdata_CITY %<>% filter(CHARACTERISTIC_ID%in%c(726:1045))
 
 popdata_CITY_nie <- filter(popdata_CITY, grepl("n\\.",Language))
 popdata_CITY <- filter(popdata_CITY, !grepl("languages",Language))
@@ -226,7 +221,7 @@ write.csv(popdata_CITY,file=paste0("popdata_",cities$city[i],".csv"))
 
 
 
-canada <- read_sf(dsn = "./ShapeFiles/DA Shapefiles/FullDA.shp", 
+canada <- read_sf(dsn = "./ShapeFiles/DA Shapefiles/FullDA.shp",
                   stringsAsFactors = T)
 
 st_write(subset(canada, DGUID%in%unique(popdata_CITY$DGUID)),paste0("./ShapeFiles/DA Shapefiles/",cities$city[i],".shp"))
