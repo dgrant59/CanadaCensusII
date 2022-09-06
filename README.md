@@ -5,8 +5,8 @@ An investigation into non-official languages in Canada
 # Visit the app ![here](https://dgrantstats.shinyapps.io/CanadaCensusIILanguage/)
 
 ### Screenshots
-![image](https://user-images.githubusercontent.com/56042923/188541690-12668b18-d5ea-4ada-a72e-9e59a44d04df.png)
-![image](https://user-images.githubusercontent.com/56042923/188541876-2aa3b020-9d18-4217-ab03-c09c822edd31.png)
+![image](https://user-images.githubusercontent.com/56042923/188548021-d97ab0e5-9c47-4b8a-8ccd-429639ea2dc0.png)
+![image](https://user-images.githubusercontent.com/56042923/188548060-4a39615b-9808-4814-9e95-a6ca1bf0f607.png)
 
 ## Project II: Toronto-specific Language Communities
 ![](./ExampleTorontoMaps/French.svg)
